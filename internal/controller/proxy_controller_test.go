@@ -371,7 +371,7 @@ func TestProxyController(t *testing.T) {
 				req.Header.Set("x-forwarded-proto", "https")
 				req.Header.Set("x-forwarded-uri", "/")
 				router.ServeHTTP(recorder, req)
-				assert.Equal(t, 401, recorder.Code)
+				assert.Equal(t, 403, recorder.Code)
 				assert.Equal(t, "", recorder.Header().Get("remote-user"))
 				assert.Equal(t, "", recorder.Header().Get("remote-name"))
 				assert.Equal(t, "", recorder.Header().Get("remote-email"))
