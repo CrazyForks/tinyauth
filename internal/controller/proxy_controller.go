@@ -190,9 +190,9 @@ func (controller *ProxyController) proxyHandler(c *gin.Context) {
 
 			if !controller.useBrowserResponse(proxyCtx) {
 				c.Header("x-tinyauth-location", redirectURL)
-				c.JSON(403, gin.H{
-					"status":  403,
-					"message": "Forbidden",
+				c.JSON(401, gin.H{
+					"status":  401,
+					"message": "Unauthorized",
 				})
 				return
 			}
@@ -234,9 +234,9 @@ func (controller *ProxyController) proxyHandler(c *gin.Context) {
 
 				if !controller.useBrowserResponse(proxyCtx) {
 					c.Header("x-tinyauth-location", redirectURL)
-					c.JSON(403, gin.H{
-						"status":  403,
-						"message": "Forbidden",
+					c.JSON(401, gin.H{
+						"status":  401,
+						"message": "Unauthorized",
 					})
 					return
 				}
