@@ -239,6 +239,16 @@ func NewOIDCService(
 		}
 	}
 
+	rPublicKey, ok := publicKey.(*rsa.PublicKey)
+
+	if !ok {
+		return nil, fmt.Errorf("public key is not an rsa public key")
+	}
+
+	if rPublicKey.N.Cmp(privateKey.N) != 0 || rPublicKey.E != privateKey.E {
+		return nil, fmt.Errorf("public key does not pair with private key")
+	}
+
 	// We will reorganize the client into a map with the client ID as the key
 	clients := make(map[string]model.OIDCClientConfig)
 
@@ -271,7 +281,7 @@ func NewOIDCService(
 
 		clients:    clients,
 		privateKey: privateKey,
-		publicKey:  publicKey.(*rsa.PublicKey),
+		publicKey:  rPublicKey,
 		issuer:     issuer,
 	}
 
@@ -822,13 +832,13 @@ func (service *OIDCService) GetJWK() ([]byte, error) {
 	hasher.Write(der)
 
 	jwk := jose.JSONWebKey{
-		Key:       service.privateKey,
+		Key:       service.publicKey,
 		Algorithm: string(jose.RS256),
 		Use:       "sig",
 		KeyID:     base64.URLEncoding.EncodeToString(hasher.Sum(nil)),
 	}
 
-	return jwk.Public().MarshalJSON()
+	return jwk.MarshalJSON()
 }
 
 func (service *OIDCService) ValidatePKCE(codeChallenge string, codeVerifier string) bool {
