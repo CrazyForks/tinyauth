@@ -121,7 +121,7 @@ type OIDCService struct {
 
 	clients    map[string]model.OIDCClientConfig
 	privateKey *rsa.PrivateKey
-	publicKey  crypto.PublicKey
+	publicKey  *rsa.PublicKey
 	issuer     string
 }
 
@@ -271,7 +271,7 @@ func NewOIDCService(
 
 		clients:    clients,
 		privateKey: privateKey,
-		publicKey:  publicKey,
+		publicKey:  publicKey.(*rsa.PublicKey),
 		issuer:     issuer,
 	}
 
@@ -296,7 +296,7 @@ func (service *OIDCService) ValidateAuthorizeParams(req AuthorizeRequest) error 
 	if !ok {
 		return errors.New("access_denied")
 	}
-	
+
 	// Redirect URI to verify that it's trusted
 	if !slices.Contains(client.TrustedRedirectURIs, req.RedirectURI) {
 		return errors.New("invalid_request_uri")
@@ -455,7 +455,7 @@ func (service *OIDCService) generateIDToken(client model.OIDCClientConfig, user 
 
 	hasher := sha256.New()
 
-	der := x509.MarshalPKCS1PublicKey(&service.privateKey.PublicKey)
+	der := x509.MarshalPKCS1PublicKey(service.publicKey)
 
 	if der == nil {
 		return "", errors.New("failed to marshal public key")
@@ -813,7 +813,7 @@ func (service *OIDCService) cleanupRoutine() {
 func (service *OIDCService) GetJWK() ([]byte, error) {
 	hasher := sha256.New()
 
-	der := x509.MarshalPKCS1PublicKey(&service.privateKey.PublicKey)
+	der := x509.MarshalPKCS1PublicKey(service.publicKey)
 
 	if der == nil {
 		return nil, errors.New("failed to marshal public key")
