@@ -25,6 +25,9 @@ func NewDefaultConfiguration() *Config {
 			SessionMaxLifetime: 0,     // disabled
 			LoginTimeout:       300,   // 5 minutes
 			LoginMaxRetries:    3,
+			ACLs: ACLsConfig{
+				Policy: "allow",
+			},
 		},
 		UI: UIConfig{
 			Title:                 "Tinyauth",
@@ -79,7 +82,7 @@ type Config struct {
 	UI            UIConfig           `description:"UI customization." yaml:"ui"`
 	LDAP          LDAPConfig         `description:"LDAP configuration." yaml:"ldap"`
 	Experimental  ExperimentalConfig `description:"Experimental features, use with caution." yaml:"experimental"`
-	LabelProvider string             `description:"Label provider to use for ACLs (auto, docker, or kubernetes). auto detects the environment." yaml:"labelProvider"`
+	LabelProvider string             `description:"Label provider to use for ACLs (auto, docker, kubernetes or none to disable). auto detects the environment." yaml:"labelProvider"`
 	Log           LogConfig          `description:"Logging configuration." yaml:"log"`
 }
 
@@ -116,6 +119,7 @@ type AuthConfig struct {
 	LoginTimeout       int                       `description:"Login timeout in seconds." yaml:"loginTimeout"`
 	LoginMaxRetries    int                       `description:"Maximum login retries." yaml:"loginMaxRetries"`
 	TrustedProxies     []string                  `description:"Comma-separated list of trusted proxy addresses." yaml:"trustedProxies"`
+	ACLs               ACLsConfig                `description:"ACLs configuration." yaml:"acls"`
 }
 
 type UserAttributes struct {
@@ -223,6 +227,10 @@ type OIDCClientConfig struct {
 	ClientSecretFile    string   `description:"Path to the file containing the OIDC client secret." yaml:"clientSecretFile"`
 	TrustedRedirectURIs []string `description:"List of trusted redirect URIs." yaml:"trustedRedirectUris"`
 	Name                string   `description:"Client name in UI." yaml:"name"`
+}
+
+type ACLsConfig struct {
+	Policy string `description:"ACL policy for allow-by-default or deny-by-default, available options are allow and deny, default is allow." yaml:"policy"`
 }
 
 // ACLs
