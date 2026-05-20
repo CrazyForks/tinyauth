@@ -15,10 +15,6 @@ import (
 	"tailscale.com/tsnet"
 )
 
-var (
-	TsnetErrClosed = errors.New("tsnet: use of closed network connection")
-)
-
 type TailscaleWhoisResponse struct {
 	UserID      string
 	LoginName   string
