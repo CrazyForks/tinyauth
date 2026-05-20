@@ -98,7 +98,7 @@ func (app *BootstrapApp) calculateListenerPolicy() []Listener {
 	l := []Listener{}
 
 	if !app.config.Server.ConcurrentListenersEnabled {
-		if app.config.Tailscale.Enabled {
+		if app.services.tailscaleService != nil {
 			l = append(l, ListenerTailscale)
 			return l
 		}
@@ -116,7 +116,7 @@ func (app *BootstrapApp) calculateListenerPolicy() []Listener {
 		l = append(l, ListenerUnix)
 	}
 
-	if app.config.Tailscale.Enabled {
+	if app.services.tailscaleService != nil {
 		l = append(l, ListenerTailscale)
 	}
 
@@ -205,7 +205,12 @@ func (app *BootstrapApp) serve(listener net.Listener, server *http.Server, name 
 		ctx, cancel := context.WithTimeout(context.Background(), model.GracefulShutdownTimeout*time.Second)
 		defer cancel()
 		err := server.Shutdown(ctx)
-		if err != nil {
+		if err != nil &&
+			// With tailscale, the goroutine for shutting down the tailscale connection
+			// runs first and causes the connection the tailscale listener is running on to close
+			// first so, the shutdown fails
+			// TODO: add priority to the goroutine shutdowns
+			!errors.Is(err, net.ErrClosed) {
 			app.log.App.Error().Err(err).Msgf("Failed to shutdown %s listener gracefully", name)
 		}
 		listener.Close()

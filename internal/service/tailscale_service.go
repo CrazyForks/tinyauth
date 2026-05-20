@@ -15,6 +15,10 @@ import (
 	"tailscale.com/tsnet"
 )
 
+var (
+	TsnetErrClosed = errors.New("tsnet: use of closed network connection")
+)
+
 type TailscaleWhoisResponse struct {
 	UserID      string
 	LoginName   string
@@ -99,10 +103,10 @@ func (ts *TailscaleService) watchAndClose() {
 	ts.srv = nil
 	ts.mu.Unlock()
 	if ln != nil {
-		(*ts.ln).Close()
+		(*ln).Close()
 	}
 	if srv != nil {
-		ts.srv.Close()
+		srv.Close()
 	}
 }
 
