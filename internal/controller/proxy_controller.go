@@ -160,7 +160,10 @@ func (controller *ProxyController) proxyHandler(c *gin.Context) {
 	userContext, err := new(model.UserContext).NewFromGin(c)
 
 	if err != nil {
-		controller.log.App.Debug().Err(err).Msg("Failed to create user context from request, treating as unauthenticated")
+		// No user context found is not an issue
+		if !errors.Is(err, model.ErrUserContextNotFound) {
+			controller.log.App.Error().Err(err).Msg("Failed to create user context from request, treating as unauthenticated")
+		}
 		userContext = &model.UserContext{
 			Authenticated: false,
 		}
