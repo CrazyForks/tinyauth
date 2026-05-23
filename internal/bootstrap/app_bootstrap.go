@@ -97,7 +97,12 @@ func (app *BootstrapApp) Setup() error {
 		return fmt.Errorf("failed to load users: %w", err)
 	}
 
-	app.runtime.LocalUsers = *users
+	if users != nil {
+		app.runtime.LocalUsers = *users
+	} else {
+		log.App.Debug().Msg("No local users found, local authentication will not be available")
+		app.runtime.LocalUsers = []model.LocalUser{}
+	}
 
 	// load oauth whitelist
 	oauthWhitelist, err := utils.GetStringList(app.config.OAuth.Whitelist, app.config.OAuth.WhitelistFile)
