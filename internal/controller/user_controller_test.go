@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pquerna/otp/totp"
+	"github.com/steveiliop56/ding"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tinyauthapp/tinyauth/internal/controller"
@@ -412,13 +412,13 @@ func TestUserController(t *testing.T) {
 	}
 
 	ctx := context.TODO()
-	wg := &sync.WaitGroup{}
+	dg := ding.New(ctx)
 
 	policyEngine, err := service.NewPolicyEngine(cfg, log)
 	require.NoError(t, err)
 
 	broker := service.NewOAuthBrokerService(log, map[string]model.OAuthServiceConfig{}, ctx)
-	authService := service.NewAuthService(log, cfg, runtime, ctx, wg, nil, store, broker, nil, policyEngine)
+	authService := service.NewAuthService(log, cfg, runtime, ctx, dg, nil, store, broker, nil, policyEngine)
 
 	beforeEach := func() {
 		// Clear failed login attempts before each test

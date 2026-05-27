@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/steveiliop56/ding"
 	"github.com/tinyauthapp/tinyauth/internal/model"
 	"github.com/tinyauthapp/tinyauth/internal/repository"
 	"github.com/tinyauthapp/tinyauth/internal/utils"
@@ -97,7 +98,7 @@ func NewAuthService(
 	config model.Config,
 	runtime model.RuntimeConfig,
 	ctx context.Context,
-	wg *sync.WaitGroup,
+	dg *ding.Ding,
 	ldap *LdapService,
 	queries repository.Store,
 	oauthBroker *OAuthBrokerService,
@@ -119,7 +120,7 @@ func NewAuthService(
 		policyEngine:         policy,
 	}
 
-	wg.Go(service.CleanupOAuthSessionsRoutine)
+	dg.Go(service.cleanupOAuthSessions, ding.RingMinor)
 
 	return service
 }
@@ -601,7 +602,7 @@ func (auth *AuthService) EndOAuthSession(sessionId string) {
 	auth.oauthMutex.Unlock()
 }
 
-func (auth *AuthService) CleanupOAuthSessionsRoutine() {
+func (auth *AuthService) cleanupOAuthSessions(ctx context.Context) {
 	auth.log.App.Debug().Msg("Starting OAuth session cleanup routine")
 
 	ticker := time.NewTicker(30 * time.Minute)
@@ -624,7 +625,7 @@ func (auth *AuthService) CleanupOAuthSessionsRoutine() {
 
 			auth.oauthMutex.Unlock()
 			auth.log.App.Debug().Msg("OAuth session cleanup completed")
-		case <-auth.context.Done():
+		case <-ctx.Done():
 			auth.log.App.Debug().Msg("Stopping OAuth session cleanup routine")
 			return
 		}

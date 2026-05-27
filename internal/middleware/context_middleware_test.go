@@ -5,11 +5,11 @@ import (
 	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/steveiliop56/ding"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tinyauthapp/tinyauth/internal/middleware"
@@ -250,7 +250,7 @@ func TestContextMiddleware(t *testing.T) {
 	}
 
 	ctx := context.TODO()
-	wg := &sync.WaitGroup{}
+	dg := ding.New(ctx)
 
 	store := memory.New()
 
@@ -258,7 +258,7 @@ func TestContextMiddleware(t *testing.T) {
 	require.NoError(t, err)
 
 	broker := service.NewOAuthBrokerService(log, map[string]model.OAuthServiceConfig{}, ctx)
-	authService := service.NewAuthService(log, cfg, runtime, ctx, wg, nil, store, broker, nil, policyEngine)
+	authService := service.NewAuthService(log, cfg, runtime, ctx, dg, nil, store, broker, nil, policyEngine)
 
 	contextMiddleware := middleware.NewContextMiddleware(log, runtime, authService, broker, nil)
 

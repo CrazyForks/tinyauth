@@ -3,10 +3,10 @@ package controller_test
 import (
 	"context"
 	"net/http/httptest"
-	"sync"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/steveiliop56/ding"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tinyauthapp/tinyauth/internal/controller"
@@ -353,8 +353,8 @@ func TestProxyController(t *testing.T) {
 
 	store := memory.New()
 
-	wg := &sync.WaitGroup{}
 	ctx := context.TODO()
+	dg := ding.New(ctx)
 
 	broker := service.NewOAuthBrokerService(log, map[string]model.OAuthServiceConfig{}, ctx)
 	aclsService := service.NewAccessControlsService(log, cfg, nil)
@@ -382,7 +382,7 @@ func TestProxyController(t *testing.T) {
 		Log: log,
 	})
 
-	authService := service.NewAuthService(log, cfg, runtime, ctx, wg, nil, store, broker, nil, policyEngine)
+	authService := service.NewAuthService(log, cfg, runtime, ctx, dg, nil, store, broker, nil, policyEngine)
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
