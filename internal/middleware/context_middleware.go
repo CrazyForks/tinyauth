@@ -326,11 +326,6 @@ func (m *ContextMiddleware) tailscaleWhois(ctx context.Context, ip string) (*mod
 			Name:     whois.DisplayName,
 		},
 		UserID: whois.UserID,
-		Tags:   whois.Tags,
-	}
-
-	if !strings.ContainsAny(uctx.Email, "@") {
-		uctx.Email = utils.CompileUserEmail(uctx.Email+"-tailscale", m.runtime.CookieDomain)
 	}
 
 	return &uctx, nil

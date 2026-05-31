@@ -21,7 +21,6 @@ type TailscaleWhoisResponse struct {
 	LoginName   string
 	DisplayName string
 	NodeName    string
-	Tags        []string
 }
 
 type TailscaleService struct {
@@ -115,13 +114,21 @@ func (ts *TailscaleService) Whois(ctx context.Context, addr string) (*TailscaleW
 		return nil, fmt.Errorf("failed to get client whois: %w", err)
 	}
 
+	if who.Node.IsTagged() {
+		ts.log.App.Debug().Msgf("Skipping whois for tagged node %s", who.Node.Name)
+		return nil, nil
+	}
+
+	uid := strings.TrimPrefix(who.UserProfile.ID.String(), "userid:")
+
 	res := TailscaleWhoisResponse{
-		UserID:      who.UserProfile.ID.String(),
+		UserID:      uid,
 		LoginName:   who.UserProfile.LoginName,
 		DisplayName: who.UserProfile.DisplayName,
 		NodeName:    strings.TrimSuffix(who.Node.Name, "."),
-		Tags:        who.Node.Tags,
 	}
+
+	ts.log.App.Debug().Interface("res", res).Msg("tailscale")
 
 	return &res, nil
 }
