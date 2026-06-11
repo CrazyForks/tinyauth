@@ -11,6 +11,7 @@ import (
 	ldapgo "github.com/go-ldap/ldap/v3"
 	"github.com/steveiliop56/ding"
 	"github.com/tinyauthapp/tinyauth/internal/model"
+	"github.com/tinyauthapp/tinyauth/internal/utils"
 	"github.com/tinyauthapp/tinyauth/internal/utils/logger"
 )
 
@@ -31,6 +32,10 @@ func NewLdapService(
 	if config.LDAP.Address == "" {
 		return nil, nil
 	}
+
+	secret := utils.GetSecret(config.LDAP.BindPassword, config.LDAP.BindPasswordFile)
+	config.LDAP.BindPassword = secret
+	config.LDAP.BindPasswordFile = ""
 
 	ldap := &LdapService{
 		log:    log,
