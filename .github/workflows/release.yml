@@ -143,8 +143,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           tags: ghcr.io/${{ github.repository_owner }}/tinyauth
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=buildkit-amd64
+          cache-to: type=gha,mode=max,scope=buildkit-amd64
           github-token: ${{ secrets.GITHUB_TOKEN }}
           build-args: |
             VERSION=${{ needs.generate-metadata.outputs.VERSION }}
@@ -200,8 +200,8 @@ jobs:
           tags: ghcr.io/${{ github.repository_owner }}/tinyauth
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
           file: Dockerfile.distroless
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=buildkit-distroless-amd64
+          cache-to: type=gha,mode=max,scope=buildkit-distroless-amd64
           github-token: ${{ secrets.GITHUB_TOKEN }}
           build-args: |
             VERSION=${{ needs.generate-metadata.outputs.VERSION }}
@@ -255,8 +255,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           tags: ghcr.io/${{ github.repository_owner }}/tinyauth
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=buildkit-arm64
+          cache-to: type=gha,mode=max,scope=buildkit-arm64
           github-token: ${{ secrets.GITHUB_TOKEN }}
           build-args: |
             VERSION=${{ needs.generate-metadata.outputs.VERSION }}
@@ -312,8 +312,8 @@ jobs:
           tags: ghcr.io/${{ github.repository_owner }}/tinyauth
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
           file: Dockerfile.distroless
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=buildkit-distroless-arm64
+          cache-to: type=gha,mode=max,scope=buildkit-distroless-arm64
           github-token: ${{ secrets.GITHUB_TOKEN }}
           build-args: |
             VERSION=${{ needs.generate-metadata.outputs.VERSION }}
