@@ -150,7 +150,7 @@ jobs:
             VERSION=${{ needs.generate-metadata.outputs.VERSION }}
             COMMIT_HASH=${{ needs.generate-metadata.outputs.COMMIT_HASH }}
             BUILD_TIMESTAMP=${{ needs.generate-metadata.outputs.BUILD_TIMESTAMP }}
-            LDFLAGS="-s -w"
+            LDFLAGS=-s -w
 
       - name: Export digest
         run: |
@@ -207,7 +207,7 @@ jobs:
             VERSION=${{ needs.generate-metadata.outputs.VERSION }}
             COMMIT_HASH=${{ needs.generate-metadata.outputs.COMMIT_HASH }}
             BUILD_TIMESTAMP=${{ needs.generate-metadata.outputs.BUILD_TIMESTAMP }}
-            LDFLAGS="-s -w"
+            LDFLAGS=-s -w
 
       - name: Export digest
         run: |
@@ -262,7 +262,7 @@ jobs:
             VERSION=${{ needs.generate-metadata.outputs.VERSION }}
             COMMIT_HASH=${{ needs.generate-metadata.outputs.COMMIT_HASH }}
             BUILD_TIMESTAMP=${{ needs.generate-metadata.outputs.BUILD_TIMESTAMP }}
-            LDFLAGS="-s -w"
+            LDFLAGS=-s -w
 
       - name: Export digest
         run: |
@@ -319,7 +319,7 @@ jobs:
             VERSION=${{ needs.generate-metadata.outputs.VERSION }}
             COMMIT_HASH=${{ needs.generate-metadata.outputs.COMMIT_HASH }}
             BUILD_TIMESTAMP=${{ needs.generate-metadata.outputs.BUILD_TIMESTAMP }}
-            LDFLAGS="-s -w"
+            LDFLAGS=-s -w
 
       - name: Export digest
         run: |
