@@ -12,6 +12,7 @@ import (
 	"github.com/tinyauthapp/tinyauth/internal/service"
 	"github.com/tinyauthapp/tinyauth/internal/utils"
 	"github.com/tinyauthapp/tinyauth/internal/utils/logger"
+	"github.com/weppos/publicsuffix-go/publicsuffix"
 	"go.uber.org/dig"
 
 	"github.com/gin-gonic/gin"
@@ -329,16 +330,33 @@ func (controller *OAuthController) isRedirectSafe(redirectURI string) bool {
 		}
 
 		// exact match
-		if u.Host == tu.Host {
+		if strings.EqualFold(u.Host, tu.Host) {
 			return true
 		}
 
-		// subdomain match (trim the tinyauth part)
+		// if subdomains are disabled, end here
+		if !controller.config.Auth.SubdomainsEnabled {
+			continue
+		}
+
+		// get the root domain (e.g. tinyauth.example.com -> example.com or
+		// tinyauth.sub.example.com -> sub.example.com)
 		_, root, ok := strings.Cut(tu.Host, ".")
 		if !ok {
 			continue
 		}
-		if strings.HasSuffix(u.Host, "."+root) {
+
+		root = strings.ToLower(root)
+
+		// check if the root domain is in the psl
+		_, err = publicsuffix.DomainFromListWithOptions(publicsuffix.DefaultList, root, nil)
+
+		if err != nil {
+			continue
+		}
+
+		// subdomain match
+		if strings.HasSuffix(strings.ToLower(u.Host), "."+root) {
 			return true
 		}
 	}
