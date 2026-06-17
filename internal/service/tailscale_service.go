@@ -138,8 +138,6 @@ func (ts *TailscaleService) Whois(ctx context.Context, addr string) (*TailscaleW
 		NodeName:    strings.TrimSuffix(who.Node.Name, "."),
 	}
 
-	ts.log.App.Debug().Interface("res", res).Msg("tailscale")
-
 	return &res, nil
 }
 
