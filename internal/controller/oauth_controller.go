@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -80,9 +81,7 @@ func (controller *OAuthController) oauthURLHandler(c *gin.Context) {
 	}
 
 	if !controller.isOidcRequest(reqParams) {
-		isRedirectSafe := utils.IsRedirectSafe(reqParams.RedirectURI, controller.runtime.CookieDomain)
-
-		if !isRedirectSafe {
+		if !controller.isRedirectSafe(reqParams.RedirectURI) {
 			controller.log.App.Warn().Str("redirectUri", reqParams.RedirectURI).Msg("Unsafe redirect URI, ignoring")
 			reqParams.RedirectURI = ""
 		}
@@ -309,4 +308,40 @@ func (controller *OAuthController) getCookieDomain() string {
 		return "." + controller.runtime.CookieDomain
 	}
 	return controller.runtime.CookieDomain
+}
+
+func (controller *OAuthController) isRedirectSafe(redirectURI string) bool {
+	u, err := url.Parse(redirectURI)
+
+	if err != nil || u.Host == "" || u.Scheme == "" {
+		return false
+	}
+
+	for _, allowed := range controller.runtime.TrustedDomains {
+		tu, err := url.Parse(allowed)
+		if err != nil {
+			controller.log.App.Error().Err(err).Str("allowed", allowed).Msg("Failed to parse trusted domain")
+			continue
+		}
+
+		if tu.Scheme != u.Scheme {
+			continue
+		}
+
+		// exact match
+		if u.Host == tu.Host {
+			return true
+		}
+
+		// subdomain match (trim the tinyauth part)
+		_, root, ok := strings.Cut(tu.Host, ".")
+		if !ok {
+			continue
+		}
+		if strings.HasSuffix(u.Host, "."+root) {
+			return true
+		}
+	}
+
+	return false
 }
