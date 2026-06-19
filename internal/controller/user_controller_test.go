@@ -41,6 +41,7 @@ func TestUserController(t *testing.T) {
 				TOTPPending: true,
 			},
 		})
+		c.Next()
 	}
 
 	totpAttrCtx := func(c *gin.Context) {
@@ -56,6 +57,7 @@ func TestUserController(t *testing.T) {
 				TOTPPending: true,
 			},
 		})
+		c.Next()
 	}
 
 	simpleCtx := func(c *gin.Context) {
@@ -70,6 +72,7 @@ func TestUserController(t *testing.T) {
 				},
 			},
 		})
+		c.Next()
 	}
 
 	store := memory.New()
@@ -81,6 +84,40 @@ func TestUserController(t *testing.T) {
 	}
 
 	tests := []testCase{
+		{
+			description: "Login should fail gracefully on invalid json",
+			middlewares: []gin.HandlerFunc{},
+			run: func(t *testing.T, router *gin.Engine, recorder *httptest.ResponseRecorder) {
+				req := httptest.NewRequest("POST", "/api/user/login", strings.NewReader(`{"username": "testuser", "password":`))
+				req.Header.Set("Content-Type", "application/json")
+
+				router.ServeHTTP(recorder, req)
+
+				assert.Equal(t, 400, recorder.Code)
+				assert.Contains(t, recorder.Body.String(), "Bad Request")
+			},
+		},
+		{
+			description: "Should fail on missing user",
+			middlewares: []gin.HandlerFunc{},
+			run: func(t *testing.T, router *gin.Engine, recorder *httptest.ResponseRecorder) {
+				loginReq := LoginRequest{
+					Username: "nonexistentuser",
+					Password: "password",
+				}
+				loginReqBody, err := json.Marshal(loginReq)
+				require.NoError(t, err)
+
+				req := httptest.NewRequest("POST", "/api/user/login", strings.NewReader(string(loginReqBody)))
+				req.Header.Set("Content-Type", "application/json")
+
+				router.ServeHTTP(recorder, req)
+
+				assert.Equal(t, 401, recorder.Code)
+				assert.Len(t, recorder.Result().Cookies(), 0)
+				assert.Contains(t, recorder.Body.String(), "Unauthorized")
+			},
+		},
 		{
 			description: "Should be able to login with valid credentials",
 			middlewares: []gin.HandlerFunc{},
@@ -240,6 +277,87 @@ func TestUserController(t *testing.T) {
 				assert.Equal(t, "tinyauth-session", cookie.Name)
 				assert.Equal(t, "", cookie.Value)
 				assert.Equal(t, -1, cookie.MaxAge) // MaxAge -1 means delete cookie
+			},
+		},
+		{
+			description: "Logout should be treated as valid without a session cookie",
+			middlewares: []gin.HandlerFunc{},
+			run: func(t *testing.T, router *gin.Engine, recorder *httptest.ResponseRecorder) {
+				req := httptest.NewRequest("POST", "/api/user/logout", nil)
+				router.ServeHTTP(recorder, req)
+
+				assert.Equal(t, 200, recorder.Code)
+			},
+		},
+		{
+			description: "TOTP should gracefully reject invalid json",
+			middlewares: []gin.HandlerFunc{},
+			run: func(t *testing.T, router *gin.Engine, recorder *httptest.ResponseRecorder) {
+				req := httptest.NewRequest("POST", "/api/user/totp", strings.NewReader(`{"code":`))
+				req.Header.Set("Content-Type", "application/json")
+
+				router.ServeHTTP(recorder, req)
+
+				assert.Equal(t, 400, recorder.Code)
+				assert.Contains(t, recorder.Body.String(), "Bad Request")
+			},
+		},
+		{
+			description: "TOTP should fail on non-totp context",
+			middlewares: []gin.HandlerFunc{
+				simpleCtx,
+			},
+			run: func(t *testing.T, router *gin.Engine, recorder *httptest.ResponseRecorder) {
+				totpReq := TotpRequest{
+					Code: "123456",
+				}
+
+				totpReqBody, err := json.Marshal(totpReq)
+				require.NoError(t, err)
+
+				recorder = httptest.NewRecorder()
+				req := httptest.NewRequest("POST", "/api/user/totp", strings.NewReader(string(totpReqBody)))
+				req.Header.Set("Content-Type", "application/json")
+				router.ServeHTTP(recorder, req)
+
+				assert.Equal(t, 401, recorder.Code)
+				assert.Contains(t, recorder.Body.String(), "Unauthorized")
+			},
+		},
+		{
+			description: "TOTP should fail when user in context doesn't exist",
+			middlewares: []gin.HandlerFunc{
+				func(ctx *gin.Context) {
+					ctx.Set("context", &model.UserContext{
+						Authenticated: false,
+						Provider:      model.ProviderLocal,
+						Local: &model.LocalContext{
+							BaseContext: model.BaseContext{
+								Username: "idontexist",
+								Name:     "Totpuser",
+								Email:    "totpuser@example.com",
+							},
+							TOTPPending: true,
+						},
+					})
+					ctx.Next()
+				},
+			},
+			run: func(t *testing.T, router *gin.Engine, recorder *httptest.ResponseRecorder) {
+				totpReq := TotpRequest{
+					Code: "123456",
+				}
+
+				totpReqBody, err := json.Marshal(totpReq)
+				require.NoError(t, err)
+
+				recorder = httptest.NewRecorder()
+				req := httptest.NewRequest("POST", "/api/user/totp", strings.NewReader(string(totpReqBody)))
+				req.Header.Set("Content-Type", "application/json")
+				router.ServeHTTP(recorder, req)
+
+				assert.Equal(t, 401, recorder.Code)
+				assert.Contains(t, recorder.Body.String(), "Unauthorized")
 			},
 		},
 		{
