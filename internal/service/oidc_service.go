@@ -44,6 +44,15 @@ var (
 	ErrInvalidClient = errors.New("invalid_client")
 )
 
+type OIDCPrompt string
+
+const (
+	OIDCPromptLogin OIDCPrompt = "login"
+	OIDCPromptNone  OIDCPrompt = "none"
+)
+
+var SupportedPrompts = []string{string(OIDCPromptLogin), string(OIDCPromptNone)}
+
 // This is not spec-compliant, the ID token SHOULD NOT contain user info claims but,
 // it has became a "standard" and apps are looking for the claims in the ID tokens
 // instead of calling the userinfo endpoint, so we include them in the ID token as well
@@ -54,6 +63,7 @@ type ClaimSet struct {
 	Sub               string   `json:"sub"`
 	Iat               int64    `json:"iat"`
 	Exp               int64    `json:"exp"`
+	AuthTime          int64    `json:"auth_time,omitempty"`
 	Name              string   `json:"name,omitempty"`
 	GivenName         string   `json:"given_name,omitempty"`
 	FamilyName        string   `json:"family_name,omitempty"`
@@ -117,6 +127,7 @@ type AuthorizeRequest struct {
 	Nonce               string `form:"nonce" json:"nonce" url:"nonce"`
 	CodeChallenge       string `form:"code_challenge" json:"code_challenge" url:"code_challenge"`
 	CodeChallengeMethod string `form:"code_challenge_method" json:"code_challenge_method" url:"code_challenge_method"`
+	Prompt              string `form:"prompt" json:"prompt" url:"prompt"`
 }
 
 type AuthorizeCodeEntry struct {
@@ -127,6 +138,7 @@ type AuthorizeCodeEntry struct {
 	Nonce         string
 	CodeChallenge string
 	Userinfo      UserinfoResponse
+	AuthTime      int64
 }
 
 type UsedCodeEntry struct {
@@ -423,6 +435,7 @@ func (service *OIDCService) CreateCode(req AuthorizeRequest, userContext model.U
 		ClientID:    req.ClientID,
 		Nonce:       req.Nonce,
 		Userinfo:    service.userinfoFromContext(userContext, sub),
+		AuthTime:    userContext.AuthTime,
 	}
 
 	if req.CodeChallenge != "" {
@@ -512,7 +525,7 @@ func (service *OIDCService) GetCodeEntry(codeHash string, clientId string) (*Aut
 	return &entry, true
 }
 
-func (service *OIDCService) generateIDToken(client model.OIDCClientConfig, user UserinfoResponse, scope string, nonce string) (string, error) {
+func (service *OIDCService) generateIDToken(client model.OIDCClientConfig, user UserinfoResponse, scope string, nonce string, authTime *int64) (string, error) {
 	createdAt := time.Now().Unix()
 	expiresAt := time.Now().Add(time.Duration(service.config.Auth.SessionExpiry) * time.Second).Unix()
 
@@ -557,6 +570,10 @@ func (service *OIDCService) generateIDToken(client model.OIDCClientConfig, user 
 		Nonce:             nonce,
 	}
 
+	if authTime != nil {
+		claims.AuthTime = *authTime
+	}
+
 	payload, err := json.Marshal(claims)
 
 	if err != nil {
@@ -578,8 +595,8 @@ func (service *OIDCService) generateIDToken(client model.OIDCClientConfig, user 
 	return token, nil
 }
 
-func (service *OIDCService) GenerateAccessToken(ctx context.Context, client model.OIDCClientConfig, codeEntry AuthorizeCodeEntry) (*TokenResponse, error) {
-	idToken, err := service.generateIDToken(client, codeEntry.Userinfo, codeEntry.Scope, codeEntry.Nonce)
+func (service *OIDCService) GenerateAccessToken(ctx context.Context, client model.OIDCClientConfig, codeEntry AuthorizeCodeEntry, authTime int64) (*TokenResponse, error) {
+	idToken, err := service.generateIDToken(client, codeEntry.Userinfo, codeEntry.Scope, codeEntry.Nonce, &authTime)
 
 	if err != nil {
 		return nil, err
@@ -658,9 +675,10 @@ func (service *OIDCService) RefreshAccessToken(ctx context.Context, refreshToken
 		return nil, err
 	}
 
+	// TODO: store auth time in the database so we can include it in the new ID token, for now we omit it
 	idToken, err := service.generateIDToken(model.OIDCClientConfig{
 		ClientID: entry.ClientID,
-	}, userInfo, entry.Scope, entry.Nonce)
+	}, userInfo, entry.Scope, entry.Nonce, nil)
 
 	if err != nil {
 		return nil, err
@@ -929,5 +947,24 @@ func (service *OIDCService) DecodeAuthorizeJWT(tokenString string) (*AuthorizeRe
 		Nonce:               get("nonce"),
 		CodeChallenge:       get("code_challenge"),
 		CodeChallengeMethod: get("code_challenge_method"),
+		Prompt:              get("prompt"),
 	}, nil
+}
+
+func (service *OIDCService) GetPrompt(prompt string) []OIDCPrompt {
+	if prompt == "" {
+		return []OIDCPrompt{}
+	}
+
+	parsedPromps := make([]OIDCPrompt, 0)
+	prompts := strings.SplitSeq(prompt, " ")
+
+	for p := range prompts {
+		if !slices.Contains(SupportedPrompts, p) {
+			continue
+		}
+		parsedPromps = append(parsedPromps, OIDCPrompt(p))
+	}
+
+	return parsedPromps
 }
