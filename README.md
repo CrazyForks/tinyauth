@@ -58,6 +58,15 @@ If you like, you can help translate Tinyauth into more languages by visiting the
 
 Tinyauth is licensed under the GNU Affero General Public License v3.0. TL;DR — You may copy, distribute and modify the software as long as you track changes/dates in source files. Any modifications to or software including (via compiler) AGPL-licensed code must also be made available under the AGPL along with build & install instructions. If you run a modified version over a network, you must also make the source available to the users of that service. For more information about the license check the [license](LICENSE) file.
 
+
+## Hosting Partners
+
+If you use one of our partners, you can help support us while getting a great hosting deal.
+
+<div>
+    <a title="InstaPods" target="_blank" href="https://app.instapods.com/dashboard/pods/create?app=tinyauth&ref=tinyauth"><img src="https://instapods.com/deploy-button.svg"></a>
+</div>
+
 ## Sponsors
 
 A big thank you to the following people for providing me with more coffee:
