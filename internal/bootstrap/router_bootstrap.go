@@ -9,21 +9,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/steveiliop56/ding"
 	"github.com/tinyauthapp/tinyauth/internal/controller"
 	"github.com/tinyauthapp/tinyauth/internal/middleware"
 	"github.com/tinyauthapp/tinyauth/internal/model"
 	"go.uber.org/dig"
 
 	"github.com/gin-gonic/gin"
-)
-
-type Listener int
-
-const (
-	ListenerHTTP Listener = iota
-	ListenerUnix
-	ListenerTailscale
 )
 
 func (app *BootstrapApp) setupRouter() error {
@@ -134,79 +125,29 @@ func (app *BootstrapApp) setupRouter() error {
 	return nil
 }
 
-func (app *BootstrapApp) runListeners() (chan error, error) {
-	// lec -> listener error channel
-	lec := make(chan error, len(app.listeners))
-
-	for _, listenerType := range app.listeners {
-		listenerFunc, err := app.listenerFromType(listenerType)
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to get listener function: %w", err)
+// Top down
+// 1. Tailscale (if tailscale.listen)
+// 2. Unix socket (if server.socketPath)
+// 3. HTTP - default
+func (app *BootstrapApp) getListenerFunc() (func(ctx context.Context) error, error) {
+	if app.config.Tailscale.Listen {
+		if app.services.tailscaleService == nil {
+			return nil, fmt.Errorf("tailscale.listen is enabled but tailscale service is not initialized")
 		}
-
-		app.ding.Go(func(ctx context.Context) {
-			lec <- listenerFunc(ctx)
-		}, ding.RingNormal)
-	}
-
-	return lec, nil
-}
-
-// The way we calculate listeners is as follows:
-// If concurrent listeners are disabled, we pick the first available listener, so:
-// 1. If tailscale is enabled, we use tailscale
-// 2. If socket path is configured, we use unix socket
-// 3. Finally if none is configured we use http
-// If concurrent listeners are enabled, we add all available listeners in the following order
-func (app *BootstrapApp) calculateListenerPolicy() []Listener {
-	l := []Listener{}
-
-	if !app.config.Server.ConcurrentListenersEnabled {
-		if app.services.tailscaleService != nil {
-			l = append(l, ListenerTailscale)
-			return l
-		}
-
-		if app.config.Server.SocketPath != "" {
-			l = append(l, ListenerUnix)
-			return l
-		}
-
-		l = append(l, ListenerHTTP)
-		return l
+		return app.serveTailscale, nil
 	}
 
 	if app.config.Server.SocketPath != "" {
-		l = append(l, ListenerUnix)
-	}
-
-	if app.services.tailscaleService != nil {
-		l = append(l, ListenerTailscale)
-	}
-
-	l = append(l, ListenerHTTP)
-
-	return l
-}
-
-func (app *BootstrapApp) listenerFromType(listenerType Listener) (func(ctx context.Context) error, error) {
-	switch listenerType {
-	case ListenerHTTP:
-		return app.serveHTTP, nil
-	case ListenerUnix:
 		return app.serveUnix, nil
-	case ListenerTailscale:
-		return app.serveTailscale, nil
-	default:
-		return nil, fmt.Errorf("invalid listener type: %d", listenerType)
 	}
+
+	return app.serveHTTP, nil
 }
 
 func (app *BootstrapApp) serveHTTP(ctx context.Context) error {
 	address := fmt.Sprintf("%s:%d", app.config.Server.Address, app.config.Server.Port)
 
-	app.log.App.Info().Msgf("Starting server on %s", address)
+	app.log.App.Info().Msgf("Starting server on http://%s", address)
 
 	listener, err := net.Listen("tcp", address)
 

@@ -12,7 +12,6 @@ import (
 	"github.com/tinyauthapp/tinyauth/internal/service"
 	"github.com/tinyauthapp/tinyauth/internal/utils"
 	"github.com/tinyauthapp/tinyauth/internal/utils/logger"
-	"github.com/weppos/publicsuffix-go/publicsuffix"
 	"go.uber.org/dig"
 
 	"github.com/gin-gonic/gin"
@@ -305,8 +304,8 @@ func (controller *OAuthController) isOidcRequest(params service.OAuthCallbackPar
 }
 
 func (controller *OAuthController) getCookieDomain() string {
-	if controller.config.Auth.SubdomainsEnabled {
-		return "." + controller.runtime.CookieDomain
+	if !controller.config.Auth.SubdomainsEnabled {
+		return ""
 	}
 	return controller.runtime.CookieDomain
 }
@@ -314,51 +313,53 @@ func (controller *OAuthController) getCookieDomain() string {
 func (controller *OAuthController) isRedirectSafe(redirectURI string) bool {
 	u, err := url.Parse(redirectURI)
 
-	if err != nil || u.Host == "" || u.Scheme == "" {
+	if err != nil {
+		controller.log.App.Error().Err(err).Msg("Failed to parse redirect URI")
 		return false
 	}
 
-	for _, allowed := range controller.runtime.TrustedDomains {
-		tu, err := url.Parse(allowed)
-		if err != nil {
-			controller.log.App.Error().Err(err).Str("allowed", allowed).Msg("Failed to parse trusted domain")
-			continue
+	if u.Scheme == "" || u.Host == "" {
+		controller.log.App.Warn().Msg("Redirect URI has invalid scheme or host")
+		return false
+	}
+
+	au, err := url.Parse(controller.runtime.AppURL)
+
+	if err != nil {
+		controller.log.App.Error().Err(err).Msg("Failed to parse app URL")
+		return false
+	}
+
+	if u.Scheme != au.Scheme {
+		controller.log.App.Warn().Msg("Redirect URI scheme does not match app URL scheme")
+		return false
+	}
+
+	getEffectivePort := func(u *url.URL) string {
+		if u.Port() != "" {
+			return u.Port()
 		}
-
-		if tu.Scheme != u.Scheme {
-			continue
+		if u.Scheme == "https" {
+			return "443"
 		}
+		return "80"
+	}
 
-		// exact match
-		if strings.EqualFold(u.Host, tu.Host) {
-			return true
-		}
+	if getEffectivePort(u) != getEffectivePort(au) {
+		controller.log.App.Warn().Msg("Redirect URI port does not match app URL port")
+		return false
+	}
 
-		// if subdomains are disabled, end here
-		if !controller.config.Auth.SubdomainsEnabled {
-			continue
-		}
+	if strings.EqualFold(u.Hostname(), au.Hostname()) {
+		return true
+	}
 
-		// get the root domain (e.g. tinyauth.example.com -> example.com or
-		// tinyauth.sub.example.com -> sub.example.com)
-		_, root, ok := strings.Cut(tu.Host, ".")
-		if !ok {
-			continue
-		}
+	if !controller.config.Auth.SubdomainsEnabled {
+		return false
+	}
 
-		root = strings.ToLower(root)
-
-		// check if the root domain is in the psl
-		_, err = publicsuffix.DomainFromListWithOptions(publicsuffix.DefaultList, root, nil)
-
-		if err != nil {
-			continue
-		}
-
-		// subdomain match
-		if strings.HasSuffix(strings.ToLower(u.Host), "."+root) {
-			return true
-		}
+	if strings.HasSuffix(strings.ToLower(u.Hostname()), "."+strings.ToLower(controller.runtime.CookieDomain)) {
+		return true
 	}
 
 	return false

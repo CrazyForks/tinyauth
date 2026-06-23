@@ -37,6 +37,8 @@ export const ContinuePage = () => {
   const { url, valid, trusted, allowedProto, httpsDowngrade } = useRedirectUri(
     redirectUri,
     app.cookieDomain,
+    app.appUrl,
+    app.subdomainsEnabled,
   );
 
   const urlHref = url?.href;
@@ -108,7 +110,11 @@ export const ContinuePage = () => {
               components={{
                 code: <code />,
               }}
-              values={{ cookieDomain: app.cookieDomain }}
+              values={{
+                cookieDomain: app.subdomainsEnabled
+                  ? `.${app.cookieDomain}`
+                  : app.cookieDomain,
+              }}
               shouldUnescape={true}
             />
           </CardDescription>

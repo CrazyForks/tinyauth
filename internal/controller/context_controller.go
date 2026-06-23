@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"errors"
+
 	"github.com/tinyauthapp/tinyauth/internal/model"
 	"github.com/tinyauthapp/tinyauth/internal/utils/logger"
 	"go.uber.org/dig"
@@ -58,9 +60,9 @@ type ACRUI struct {
 }
 
 type ACRApp struct {
-	AppURL         string   `json:"appUrl"`
-	CookieDomain   string   `json:"cookieDomain"`
-	TrustedDomains []string `json:"trustedDomains"`
+	AppURL            string `json:"appUrl"`
+	CookieDomain      string `json:"cookieDomain"`
+	SubdomainsEnabled bool   `json:"subdomainsEnabled"`
 }
 
 type AppContextResponse struct {
@@ -109,7 +111,9 @@ func (controller *ContextController) userContextHandler(c *gin.Context) {
 	context, err := new(model.UserContext).NewFromGin(c)
 
 	if err != nil {
-		controller.log.App.Error().Err(err).Msg("Failed to create user context from request")
+		if !errors.Is(err, model.ErrUserContextNotFound) {
+			controller.log.App.Error().Err(err).Msg("Failed to create user context from request")
+		}
 		c.JSON(200, UserContextResponse{
 			Status:  401,
 			Message: "Unauthorized",
@@ -160,9 +164,9 @@ func (controller *ContextController) appContextHandler(c *gin.Context) {
 			WarningsEnabled:       controller.config.UI.WarningsEnabled,
 		},
 		App: ACRApp{
-			AppURL:         controller.runtime.AppURL,
-			CookieDomain:   controller.runtime.CookieDomain,
-			TrustedDomains: controller.runtime.TrustedDomains,
+			AppURL:            controller.runtime.AppURL,
+			CookieDomain:      controller.runtime.CookieDomain,
+			SubdomainsEnabled: controller.config.Auth.SubdomainsEnabled,
 		},
 	})
 }

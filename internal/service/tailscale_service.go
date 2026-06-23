@@ -94,6 +94,10 @@ func NewTailscaleService(i TailscaleServiceInput) (*TailscaleService, error) {
 
 	i.Ding.Go(service.watchAndClose, ding.RingMajor)
 
+	if i.Config.Tailscale.Funnel && !i.Config.Tailscale.Listen {
+		service.log.App.Warn().Msg("Tailscale Funnel is enabled but listen is disabled. Funnel will not work without listen enabled.")
+	}
+
 	return service, nil
 }
 
@@ -148,6 +152,16 @@ func (ts *TailscaleService) CreateListener() (net.Listener, error) {
 	if ts.ln != nil {
 		return *ts.ln, nil
 	}
+
+	if ts.config.Tailscale.Funnel {
+		ln, err := ts.srv.ListenFunnel("tcp", ":443")
+		if err != nil {
+			return nil, err
+		}
+		ts.ln = &ln
+		return ln, nil
+	}
+
 	ln, err := ts.srv.ListenTLS("tcp", ":443")
 	if err != nil {
 		return nil, err
