@@ -25,6 +25,8 @@ import {
   Palette,
   Settings,
   Sun,
+  UserRoundKey,
+  X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router";
@@ -37,20 +39,26 @@ import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { toast } from "sonner";
 import { useEffect } from "react";
+import { GoogleIcon } from "../icons/google";
+import { GithubIcon } from "../icons/github";
+import { TailscaleIcon } from "../icons/tailscale";
+import { MicrosoftIcon } from "../icons/microsoft";
+import { PocketIDIcon } from "../icons/pocket-id";
+import { OAuthIcon } from "../icons/oauth";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
-function Avatar({ initial }: { initial: string }) {
-  return (
-    <span className="group relative grid size-10 place-items-center rounded-full">
-      <span className="absolute inset-0 overflow-hidden rounded-full bg-linear-to-b from-neutral-50 to-neutral-100 dark:from-neutral-700 dark:to-neutral-950 shadow-lg"></span>
-      <span className="relative text-sm font-semibold text-primary">
-        {initial}
-      </span>
-    </span>
-  );
-}
+const iconStyles = "size-4";
+
+const iconMap: Record<string, React.ReactNode> = {
+  google: <GoogleIcon className={iconStyles} />,
+  github: <GithubIcon className={iconStyles} />,
+  tailscale: <TailscaleIcon className={iconStyles} />,
+  microsoft: <MicrosoftIcon className={iconStyles} />,
+  pocketid: <PocketIDIcon className={iconStyles} />,
+};
 
 export const QuickActions = () => {
-  const { auth } = useUserContext();
+  const { auth, oauth, tailscale } = useUserContext();
   const { theme, setTheme } = useTheme();
   const { t } = useTranslation();
   const { search } = useLocation();
@@ -63,6 +71,49 @@ export const QuickActions = () => {
   const searchParams = new URLSearchParams(search);
   const screenParams = useScreenParams(searchParams);
   const compiledParams = recompileScreenParams(screenParams);
+
+  const [isOpen, setIsOpen] = useState(false);
+
+  const providerDetails = (():
+    | { name: string; icon: React.ReactNode }
+    | undefined => {
+    if (!auth.authenticated) {
+      return undefined;
+    }
+
+    if (auth.providerId === "local" || auth.providerId === "ldap") {
+      return {
+        name: t(
+          auth.providerId === "ldap"
+            ? "quickActionsProviderLDAP"
+            : "quickActionsProviderLocal",
+        ),
+        icon: (
+          <UserRoundKey
+            strokeWidth={1.5}
+            size={16}
+            className="text-muted-foreground ml-0.5"
+          />
+        ),
+      };
+    }
+
+    if (oauth.active) {
+      return {
+        name: t("quickActionsProviderOAuth", { provider: oauth.displayName }),
+        icon: iconMap[auth.providerId] || <OAuthIcon className={iconStyles} />,
+      };
+    }
+
+    if (auth.providerId === "tailscale") {
+      return {
+        name: `Tailscale (${tailscale.nodeName})`,
+        icon: <TailscaleIcon className={iconStyles} />,
+      };
+    }
+
+    return undefined;
+  })();
 
   const logoutMutation = useMutation({
     mutationFn: () => axios.post("/api/user/logout"),
@@ -107,17 +158,29 @@ export const QuickActions = () => {
   ] as const;
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={(open) => setIsOpen(open)} open={isOpen}>
       <DropdownMenuTrigger asChild>
         <button
           aria-label={t("quickActionsTitle")}
           className="rounded-full transition-transform duration-200 will-change-transform hover:scale-105 hover:cursor-pointer focus:ring-0 focus:outline-3 focus:outline-ring/50"
         >
           {auth.authenticated ? (
-            <Avatar initial={initial!} />
+            <div className="size-10 flex justify-center items-center p-2 rounded-full bg-card border border-border">
+              {isOpen ? (
+                <X className="size-4 text-primary rotate-0 transition-transform duration-200 starting:rotate-45" />
+              ) : (
+                <span className="text-sm text-primary rotate-0 transition-transform duration-200 starting:-rotate-45">
+                  {initial}
+                </span>
+              )}
+            </div>
           ) : (
             <span className="bg-card text-primary border-border size-10 flex items-center justify-center rounded-full border shadow-lg">
-              <Settings className="size-4" />
+              <Settings
+                className={`size-4 transition-transform duration-200 ${
+                  isOpen ? "rotate-45" : "rotate-0"
+                }`}
+              />
             </span>
           )}
         </button>
@@ -126,19 +189,22 @@ export const QuickActions = () => {
       <DropdownMenuContent
         align="end"
         sideOffset={8}
-        className="rounded-xl p-1"
+        className="rounded-xl p-1 w-3xs"
       >
         {auth.authenticated && (
           <>
             <DropdownMenuLabel className="flex items-center gap-3 p-2">
-              <div className="bg-foreground text-background flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-medium">
-                {initial}
-              </div>
-              <div className="flex min-w-0 flex-col">
+              <Tooltip>
+                <TooltipTrigger className="size-9 rounded-full p-2 bg-muted border-border border flex items-center justify-center">
+                  {providerDetails!.icon}
+                </TooltipTrigger>
+                <TooltipContent>{providerDetails!.name}</TooltipContent>
+              </Tooltip>
+              <div className="flex min-w-0 flex-col gap-0.5">
                 <span className="truncate text-sm font-medium">
                   {auth.name}
                 </span>
-                <span className="text-muted-foreground truncate text-xs font-normal">
+                <span className="text-muted-foreground truncate text-xs">
                   {auth.email}
                 </span>
               </div>
@@ -197,7 +263,7 @@ export const QuickActions = () => {
               onSelect={() => logoutMutation.mutate()}
               className="text-destructive"
             >
-              <DoorOpenIcon className="size-4" />
+              <DoorOpenIcon className="size-4 text-destructive" />
               {t("quickActionsLogout")}
             </DropdownMenuItem>
           </>
