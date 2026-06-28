@@ -1,7 +1,7 @@
 <div align="center">
     <img alt="Tinyauth" title="Tinyauth" width="96" src="assets/logo-rounded.png">
     <h1>Tinyauth</h1>
-    <p>The tiniest authentication and authorization server you have ever seen.</p>
+    <p>The tiniest OpenID Certified™ authorization and authentication server you have ever seen.</p>
 </div>
 
 <div align="center">
@@ -27,6 +27,10 @@ Tinyauth is the simplest and tiniest authentication and authorization server you
 
 > [!NOTE]
 > This is the main development branch. For the latest stable release, see the [documentation](https://tinyauth.app) or the latest stable tag.
+
+As of 2026-06-25, Tinyauth v5.1.0 is OpenID Certified™ for Basic OP. You can find the certification details [here](https://openid.net/certification-old/certified-openid-providers-profiles/), test suite available [here](https://www.certification.openid.net/plan-detail.html?public=true&plan=H0qhpsOcQkxUE).
+
+<img alt="OpenID Certified" width="200" src="https://openid.net/wordpress-content/uploads/2016/05/oid-l-certification-mark-l-cmyk-150dpi-90mm.jpg" />
 
 ## Getting Started
 
