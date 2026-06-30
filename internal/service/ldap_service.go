@@ -18,6 +18,7 @@ import (
 
 type LdapService struct {
 	log    *logger.Logger
+	ctx    context.Context
 	config *model.Config
 
 	conn   *ldapgo.Conn
@@ -32,6 +33,7 @@ type LdapServiceInput struct {
 	Log    *logger.Logger
 	Config *model.Config
 	Ding   *ding.Ding
+	Ctx    context.Context
 }
 
 func NewLdapService(i LdapServiceInput) (*LdapService, error) {
@@ -42,6 +44,7 @@ func NewLdapService(i LdapServiceInput) (*LdapService, error) {
 	ldap := &LdapService{
 		log:    i.Log,
 		config: i.Config,
+		ctx:    i.Ctx,
 	}
 
 	ldap.bindPw = utils.GetSecret(i.Config.LDAP.BindPassword, i.Config.LDAP.BindPasswordFile)
@@ -73,6 +76,8 @@ func NewLdapService(i LdapServiceInput) (*LdapService, error) {
 	_, err := ldap.connect()
 
 	if err != nil {
+		// 3s + 4.5s (3x1.5) = ~6.75-8.25s total wait time before giving up
+		err = ldap.reconnect(3 * time.Second)
 		return nil, fmt.Errorf("failed to connect to ldap server: %w", err)
 	}
 
@@ -88,7 +93,7 @@ func NewLdapService(i LdapServiceInput) (*LdapService, error) {
 				err := ldap.heartbeat()
 				if err != nil {
 					ldap.log.App.Warn().Err(err).Msg("LDAP connection heartbeat failed, attempting to reconnect")
-					if reconnectErr := ldap.reconnect(); reconnectErr != nil {
+					if reconnectErr := ldap.reconnect(1 * time.Second); reconnectErr != nil {
 						ldap.log.App.Error().Err(reconnectErr).Msg("Failed to reconnect to LDAP server")
 						continue
 					}
@@ -276,17 +281,19 @@ func (ldap *LdapService) heartbeat() error {
 	return nil
 }
 
-func (ldap *LdapService) reconnect() error {
+func (ldap *LdapService) reconnect(interval time.Duration) error {
 	ldap.log.App.Info().Msg("Attempting to reconnect to LDAP server")
 
 	exp := backoff.NewExponentialBackOff()
-	exp.InitialInterval = 500 * time.Millisecond
+	exp.InitialInterval = interval
 	exp.RandomizationFactor = 0.1
 	exp.Multiplier = 1.5
 	exp.Reset()
 
 	operation := func() (*ldapgo.Conn, error) {
-		ldap.conn.Close()
+		if ldap.conn != nil {
+			ldap.conn.Close()
+		}
 		conn, err := ldap.connect()
 		if err != nil {
 			return nil, err
@@ -294,7 +301,7 @@ func (ldap *LdapService) reconnect() error {
 		return conn, nil
 	}
 
-	_, err := backoff.Retry(context.TODO(), operation, backoff.WithBackOff(exp), backoff.WithMaxTries(3))
+	_, err := backoff.Retry(ldap.ctx, operation, backoff.WithBackOff(exp), backoff.WithMaxTries(3))
 
 	if err != nil {
 		return err
