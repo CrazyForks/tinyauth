@@ -227,7 +227,6 @@ func (app *BootstrapApp) serve(listener net.Listener, server *http.Server, ctx c
 	err := server.Serve(listener)
 
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		shutdown()
 		return fmt.Errorf("failed to start %s listener: %w", name, err)
 	}
 
