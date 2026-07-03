@@ -1,8 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/tinyauthapp/paerser/cli"
 	"github.com/tinyauthapp/tinyauth/internal/model"
@@ -11,15 +11,21 @@ import (
 func configCmd(tconfig *model.Config, loaders []cli.ResourceLoader) *cli.Command {
 	return &cli.Command{
 		Name:          "config",
-		Description:   "Print the configuration of Tinyauth",
+		Description:   "Dump the current configuration in YAML format, useful for debugging",
 		Configuration: tconfig,
 		Resources:     loaders,
 		Run: func(_ []string) error {
-			jsonBytes, err := json.MarshalIndent(tconfig, "", "  ")
+			buf := strings.Builder{}
+
+			fmt.Fprint(&buf, "Your current configuration in YAML is:\n\n")
+
+			err := renderYamlToBuf(&buf, tconfig)
+
 			if err != nil {
-				return fmt.Errorf("failed to marshal configuration: %w", err)
+				return fmt.Errorf("failed to render yaml config: %w", err)
 			}
-			fmt.Println(string(jsonBytes))
+
+			fmt.Print(buf.String())
 			return nil
 		},
 	}
