@@ -259,7 +259,7 @@ export const LoginPage = () => {
             onClick={() => tailscaleMutate()}
             loading={tailscaleIsPending}
           >
-            {t("loginTailscaleSubmit")}
+            {t("loginTailscaleTitle")}
           </Button>
           <Button
             className="w-full"
