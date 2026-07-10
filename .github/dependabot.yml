@@ -9,6 +9,8 @@ updates:
           - "minor"
     schedule:
       interval: "daily"
+    cooldown:
+     default-days: 1
 
   - package-ecosystem: "gomod"
     directory: "/"
@@ -19,13 +21,19 @@ updates:
           - "minor"
     schedule:
       interval: "daily"
+    cooldown:
+     default-days: 1
 
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "daily"
+    cooldown:
+     default-days: 1
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "daily"
+    cooldown:
+     default-days: 1
