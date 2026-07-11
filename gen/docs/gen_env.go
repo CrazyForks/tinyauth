@@ -51,6 +51,8 @@ func buildEnvEntry(child reflect.StructField, childValue reflect.Value, parentPa
 		return
 	}
 
+	tag = strings.TrimSuffix(tag, ",omitempty")
+
 	value := childValue.Interface()
 
 	entry := EnvEntry{

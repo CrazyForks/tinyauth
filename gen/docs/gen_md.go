@@ -52,6 +52,8 @@ func buildMdEntry(child reflect.StructField, childValue reflect.Value, parentPat
 		return
 	}
 
+	tag = strings.TrimSuffix(tag, ",omitempty")
+
 	value := childValue.Interface()
 
 	entry := MarkdownEntry{
@@ -87,6 +89,8 @@ func buildMdMapEntry(child reflect.StructField, parentPath string, entries *[]Ma
 	if tag == "-" {
 		return
 	}
+
+	tag = strings.TrimSuffix(tag, ",omitempty")
 
 	mapPath := parentPath + tag + ".[name]."
 	valueType := fieldType.Elem()
