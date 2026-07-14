@@ -1,10 +1,12 @@
 package service
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/tinyauthapp/tinyauth/internal/model"
 	"github.com/tinyauthapp/tinyauth/internal/utils/logger"
+	"github.com/tinyauthapp/tinyauth/pkg/validators"
 	"go.uber.org/dig"
 )
 
@@ -38,13 +40,19 @@ func NewAccessControlsService(i AccessControlServiceInput) *AccessControlsServic
 func (service *AccessControlsService) lookupStaticACLs(domain string) *model.App {
 	var nameMatch *model.App
 
+	v := validators.NewDomainValidator(validators.DomainValidatorOptions{})
+
 	// First try to find a matching app by domain, then fallback to matching by app name (subdomain)
 	for app, config := range service.config.Apps {
-		if config.Config.Domain == domain {
+		err := v.Validate(config.Config.Domain, domain)
+		if err == nil {
 			service.log.App.Debug().Str("name", app).Msg("Found matching container by domain")
 			return &config
 		}
-		if strings.SplitN(domain, ".", 2)[0] == app {
+		if !errors.Is(err, validators.ErrHostnameMismatch) {
+			service.log.App.Debug().Str("name", app).Err(err).Msg("Domain validation failed")
+		}
+		if strings.HasPrefix(strings.ToLower(domain), strings.ToLower(app+".")) {
 			service.log.App.Debug().Str("name", app).Msg("Found matching container by app name")
 			nameMatch = &config
 		}
