@@ -83,7 +83,3 @@ for their support for Tinyauth.
 - **Freepik** for providing the police hat and badge.
 - **Renee French** for the original gopher logo.
 - **Syrhu** for providing the background image of the app.
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=tinyauthapp/tinyauth&type=Date)](https://www.star-history.com/#tinyauthapp/tinyauth&Date)
