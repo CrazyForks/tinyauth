@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"regexp"
 	"strings"
 
@@ -43,8 +44,7 @@ func (rule *UserAllowedRule) Evaluate(ctx *ACLContext) Effect {
 		rule.Log.App.Debug().Msg("User is an OAuth user, checking OAuth whitelist")
 		match, err := utils.CheckFilter(ctx.ACLs.OAuth.Whitelist, ctx.UserContext.OAuth.Email)
 		if err != nil {
-			// Empty whitelist means "not configured" — let OAuth group rules decide.
-			if err == utils.ErrFilterEmpty {
+			if errors.Is(err, utils.ErrFilterEmpty) {
 				rule.Log.App.Debug().Msg("OAuth whitelist is empty, abstaining")
 				return EffectAbstain
 			}
@@ -77,7 +77,7 @@ func (rule *UserAllowedRule) Evaluate(ctx *ACLContext) Effect {
 	match, err := utils.CheckFilter(ctx.ACLs.Users.Allow, ctx.UserContext.GetUsername())
 
 	if err != nil {
-		if err == utils.ErrFilterEmpty {
+		if errors.Is(err, utils.ErrFilterEmpty) {
 			return EffectAbstain
 		}
 		rule.Log.App.Warn().Err(err).Str("item", ctx.UserContext.GetUsername()).Msg("Invalid entry in users allow list")

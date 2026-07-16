@@ -45,6 +45,21 @@ func TestUserAllowedRule(t *testing.T) {
 			expected: EffectAbstain,
 		},
 		{
+			name: "abstains when filter is empty",
+			ctx: &ACLContext{
+				ACLs: &model.App{
+					OAuth: model.AppOAuth{Whitelist: ""},
+				},
+				UserContext: &model.UserContext{
+					Provider: model.ProviderOAuth,
+					OAuth: &model.OAuthContext{
+						BaseContext: model.BaseContext{Username: "alice"},
+					},
+				},
+			},
+			expected: EffectAbstain,
+		},
+		{
 			name: "allows OAuth user when email matches whitelist",
 			ctx: &ACLContext{
 				ACLs: &model.App{
