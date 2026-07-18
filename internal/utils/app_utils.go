@@ -26,8 +26,8 @@ func SafeParseAppURL(str string) (string, error) {
 	}
 
 	if u.Host == "" ||
-		u.Scheme != "http" &&
-			u.Scheme != "https" {
+		(u.Scheme != "http" &&
+			u.Scheme != "https") {
 		return "", fmt.Errorf("invalid url, must be in format https(s)://host")
 	}
 
