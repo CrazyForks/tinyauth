@@ -114,10 +114,6 @@ export const isTrustedDomain = (
     return false;
   }
 
-  if (url.protocol != appUrl.protocol) {
-    return false;
-  }
-
   if (getEffectivePort(url) != getEffectivePort(appUrl)) {
     return false;
   }

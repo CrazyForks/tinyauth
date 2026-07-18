@@ -313,8 +313,7 @@ func (controller *OAuthController) getCookieDomain() string {
 
 func (controller *OAuthController) isRedirectSafe(redirectURI string) bool {
 	v := validators.NewDomainValidator(validators.DomainValidatorOptions{
-		WithScheme: true,
-		WithPort:   true,
+		WithPort: true,
 	})
 
 	_, err := v.SafeHostname(controller.runtime.AppURL)
@@ -333,7 +332,6 @@ func (controller *OAuthController) isRedirectSafe(redirectURI string) bool {
 	controller.log.App.Debug().Err(err).Msg("Failed to validate redirect URI")
 
 	if errors.Is(err, validators.ErrInvalidURL) ||
-		errors.Is(err, validators.ErrSchemeMismatch) ||
 		errors.Is(err, validators.ErrPortMismatch) {
 		return false
 	}
