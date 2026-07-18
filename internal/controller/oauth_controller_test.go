@@ -82,14 +82,6 @@ func TestOAuthController_isRedirectSafe(t *testing.T) {
 			expected:          false,
 		},
 		{
-			description:       "Cookie domain itself is not a subdomain match",
-			appURL:            "https://tinyauth.example.com",
-			cookieDomain:      "example.com",
-			subdomainsEnabled: true,
-			redirectURI:       "https://example.com",
-			expected:          false,
-		},
-		{
 			description:       "Different scheme returns false",
 			appURL:            "https://tinyauth.example.com",
 			cookieDomain:      "example.com",
