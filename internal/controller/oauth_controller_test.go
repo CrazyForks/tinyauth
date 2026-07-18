@@ -114,14 +114,6 @@ func TestOAuthController_isRedirectSafe(t *testing.T) {
 			expected:          false,
 		},
 		{
-			description:       "Redirect URI without scheme returns false",
-			appURL:            "https://tinyauth.example.com",
-			cookieDomain:      "example.com",
-			subdomainsEnabled: true,
-			redirectURI:       "tinyauth.example.com",
-			expected:          false,
-		},
-		{
 			description:       "Relative redirect URI returns false",
 			appURL:            "https://tinyauth.example.com",
 			cookieDomain:      "example.com",

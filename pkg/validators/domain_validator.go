@@ -63,7 +63,7 @@ func (v *DomainValidator) getURL(i string) (*url.URL, error) {
 		return nil, ErrInvalidURL
 	}
 
-	if v.opts.WithPort && !v.opts.WithScheme && u.Port() == "" {
+	if v.opts.WithPort && u.Port() == "" && (u.Scheme != "http" && u.Scheme != "https") {
 		return nil, fmt.Errorf("port validation is enabled but port is missing in input url and schemes are not enabled")
 	}
 

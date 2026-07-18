@@ -104,6 +104,24 @@ func TestDomainValidator_SafeHostname(t *testing.T) {
 				assert.ErrorContains(t, e, "input url is missing scheme")
 			},
 		},
+		{
+			description: "With port enabled but without scheme and url with https should work",
+			options:     DomainValidatorOptions{WithPort: true},
+			input:       "https://example.com",
+			expected:    "example.com",
+		},
+		{
+			description: "With port enabled but without scheme and url with http should work",
+			options:     DomainValidatorOptions{WithPort: true},
+			input:       "http://example.com",
+			expected:    "example.com",
+		},
+		{
+			description: "With port enabled but without scheme and url with port should work",
+			options:     DomainValidatorOptions{WithPort: true},
+			input:       "example.com:8080",
+			expected:    "example.com",
+		},
 	}
 
 	for _, test := range tests {
@@ -194,7 +212,7 @@ func TestDomainValidator_Validate(t *testing.T) {
 			expected:    "ssh://example.com:22",
 			actual:      "ssh://example.com",
 			errorFunc: func(t *testing.T, e error) {
-				assert.ErrorContains(t, e, "failed to get effective port for url")
+				assert.ErrorContains(t, e, "port validation is enabled but port is missing in input url and schemes are not enabled")
 			},
 		},
 		{
@@ -203,8 +221,20 @@ func TestDomainValidator_Validate(t *testing.T) {
 			expected:    "ssh://example.com",
 			actual:      "ssh://example.com:22",
 			errorFunc: func(t *testing.T, e error) {
-				assert.ErrorContains(t, e, "failed to get effective port for url")
+				assert.ErrorContains(t, e, "port validation is enabled but port is missing in input url and schemes are not enabled")
 			},
+		},
+		{
+			description: "Port enabled but no scheme and https scheme should pass",
+			options:     DomainValidatorOptions{WithPort: true},
+			expected:    "https://example.com",
+			actual:      "https://example.com",
+		},
+		{
+			description: "Port enabled but no scheme and http scheme should pass",
+			options:     DomainValidatorOptions{WithPort: true},
+			expected:    "http://example.com",
+			actual:      "http://example.com",
 		},
 		{
 			description: "Port validation with port and no scheme should fail with different port",
