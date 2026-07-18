@@ -27,7 +27,7 @@ export function useScreenParams(params: URLSearchParams): ScreenParams {
   return parsed.data;
 }
 
-export function searchParamsFromObject(obj: Object): URLSearchParams {
+export function searchParamsFromObject(obj: object): URLSearchParams {
   return new URLSearchParams(
     Object.fromEntries(
       Object.entries(obj).filter(([, v]) => v !== undefined),
