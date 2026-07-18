@@ -44,13 +44,17 @@ func (service *AccessControlsService) lookupStaticACLs(domain string) *model.App
 
 	// First try to find a matching app by domain, then fallback to matching by app name (subdomain)
 	for app, config := range service.config.Apps {
-		err := v.Validate(config.Config.Domain, domain)
-		if err == nil {
-			service.log.App.Debug().Str("name", app).Msg("Found matching container by domain")
-			return &config
-		}
-		if !errors.Is(err, validators.ErrHostnameMismatch) {
-			service.log.App.Debug().Str("name", app).Err(err).Msg("Domain validation failed")
+		if config.Config.Domain != "" {
+			err := v.Validate(config.Config.Domain, domain)
+			if err == nil {
+				service.log.App.Debug().Str("name", app).Msg("Found matching container by domain")
+				return &config
+			}
+			if !errors.Is(err, validators.ErrHostnameMismatch) ||
+				!errors.Is(err, validators.ErrPortMismatch) ||
+				!errors.Is(err, validators.ErrSchemeMismatch) {
+				service.log.App.Debug().Str("name", app).Err(err).Msg("Domain validation failed")
+			}
 		}
 		if strings.HasPrefix(strings.ToLower(domain), strings.ToLower(app+".")) {
 			service.log.App.Debug().Str("name", app).Msg("Found matching container by app name")
