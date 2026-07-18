@@ -88,12 +88,32 @@ const getEffectivePort = (url: URL): string => {
   return "80";
 };
 
+// https://www.geeksforgeeks.org/javascript/how-to-check-if-a-string-is-a-valid-ip-address-format-in-javascript
+const isIP = (str: string): boolean => {
+  const ipv4 =
+      /^(\d{1,3}\.){3}\d{1,3}$/;
+  const ipv6 =
+      /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
+  return ipv4.test(str) || ipv6.test(str) || str.startsWith("[");
+}
+
+const trimPeriod = (str: string): string => {
+  if(str.lastIndexOf('.') === (str.length - 1)){
+    str = str.substring(0, str.length - 1);
+  }
+  return str
+}
+
 export const isTrustedDomain = (
   url: URL,
   appUrl: URL,
   cookieDomain: string,
   subdomainsEnabled: boolean,
 ): boolean => {
+  if (isIP(url.hostname)) {
+    return false;
+  }
+
   if (url.protocol != appUrl.protocol) {
     return false;
   }
@@ -102,7 +122,7 @@ export const isTrustedDomain = (
     return false;
   }
 
-  if (url.hostname == appUrl.hostname) {
+  if (trimPeriod(url.hostname) == trimPeriod(appUrl.hostname)) {
     return true;
   }
 
@@ -110,9 +130,6 @@ export const isTrustedDomain = (
     return false;
   }
 
-  if (url.hostname.endsWith("." + cookieDomain.toLowerCase())) {
-    return true;
-  }
-
-  return false;
+  return trimPeriod(url.hostname).endsWith("." + cookieDomain.toLowerCase())
+      || trimPeriod(url.hostname) == cookieDomain.toLowerCase();
 };
