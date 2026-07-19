@@ -77,7 +77,7 @@ export const LoginPage = () => {
 
   const [isOauthAutoRedirect, setIsOauthAutoRedirect] = useState(
     providers.find((provider) => provider.id === oauth.autoRedirect) !==
-      undefined && screenParams.redirect_uri !== undefined,
+      undefined && (screenParams.redirect_uri || screenParams.oidc_ticket),
   );
 
   const oauthProviders = providers.filter(
@@ -174,8 +174,7 @@ export const LoginPage = () => {
       !auth.authenticated &&
       isOauthAutoRedirect &&
       !hasAutoRedirectedRef.current &&
-      screenParams.redirect_uri &&
-      screenParams.login_for
+      (screenParams.redirect_uri || screenParams.oidc_ticket)
     ) {
       hasAutoRedirectedRef.current = true;
       oauthMutate(oauth.autoRedirect);
@@ -186,8 +185,8 @@ export const LoginPage = () => {
     hasAutoRedirectedRef,
     oauth.autoRedirect,
     isOauthAutoRedirect,
-    screenParams.login_for,
     screenParams.redirect_uri,
+    screenParams.oidc_ticket
   ]);
 
   useEffect(() => {
