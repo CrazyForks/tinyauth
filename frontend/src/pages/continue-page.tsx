@@ -31,7 +31,7 @@ export const ContinuePage = () => {
   const searchParams = new URLSearchParams(search);
   const screenParams = useScreenParams(searchParams);
   const redirectUri = screenParams.redirect_uri;
-  const isAppLogin = screenParams.login_for === "app";
+  const isAppLogin = screenParams.login_for === "app" || !screenParams.login_for;
   const compiledParams = (() => {
     const params = searchParamsFromObject(screenParams).toString();
     if (params.length > 0) {
