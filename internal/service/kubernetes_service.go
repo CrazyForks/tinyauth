@@ -201,6 +201,12 @@ func (k *KubernetesService) updateFromItem(item *unstructured.Unstructured) {
 		return
 	}
 
+	if len(hosts) == 0 {
+		k.log.App.Warn().Str("namespace", key.namespace).Str("name", key.name).Msg("No hosts found in ingress, skipping")
+		k.removeIngress(key)
+		return
+	}
+
 	labels, err := decoders.DecodeLabels[model.Apps](annotations, "apps")
 	if err != nil {
 		k.log.App.Warn().Err(err).Str("namespace", key.namespace).Str("name", key.name).Msg("Failed to decode ingress labels, skipping")
@@ -213,35 +219,28 @@ func (k *KubernetesService) updateFromItem(item *unstructured.Unstructured) {
 	v := validators.NewDomainValidator(validators.DomainValidatorOptions{})
 
 	for name, config := range labels.Apps {
-		registerApp := len(hosts) == 0
-
 		if config.Config.Domain != "" {
 			hostname, err := v.SafeHostname(config.Config.Domain)
 			if err != nil {
 				k.log.App.Warn().Err(err).Str("namespace", key.namespace).Str("name", key.name).Str("domain", config.Config.Domain).Msg("Domain is invalid, matching will rely on app name")
 			} else if slices.Contains(hosts, hostname) {
-				registerApp = true
+				entries = append(entries, ingressEntry{
+					name: name,
+					app:  config,
+				})
+				continue
 			}
 		}
 
-		if !registerApp {
-			for _, host := range hosts {
-				if strings.HasPrefix(strings.ToLower(host), strings.ToLower(name+".")) {
-					registerApp = true
-					break
-				}
+		for _, host := range hosts {
+			if strings.HasPrefix(strings.ToLower(host), strings.ToLower(name+".")) {
+				entries = append(entries, ingressEntry{
+					name: name,
+					app:  config,
+				})
+				break
 			}
 		}
-
-		if !registerApp {
-			k.log.App.Warn().Str("namespace", key.namespace).Str("name", name).Str("appName", name).Msg("App name or domain does not match with ingress")
-			continue
-		}
-
-		entries = append(entries, ingressEntry{
-			name: name,
-			app:  config,
-		})
 	}
 
 	if len(entries) == 0 {

@@ -231,6 +231,13 @@ func TestKubernetesService(t *testing.T) {
 					"tinyauth.apps.myapp.config.domain": "myapp.example.com",
 					"tinyauth.apps.myapp.users.allow":   "alice",
 				})
+				item.Object["spec"] = map[string]any{
+					"rules": []any{
+						map[string]any{
+							"host": "myapp.example.com",
+						},
+					},
+				}
 
 				svc.updateFromItem(&item)
 
@@ -246,6 +253,61 @@ func TestKubernetesService(t *testing.T) {
 				require.NotNil(t, got)
 				assert.Equal(t, "myapp.example.com", got.Config.Domain)
 				assert.Equal(t, "alice", got.Users.Allow)
+			},
+		},
+		{
+			description: "Update from item skips annotations with no hosts",
+			run: func(t *testing.T, svc *KubernetesService) {
+				item := unstructured.Unstructured{}
+				item.SetNamespace("default")
+				item.SetName("test-ingress")
+				item.SetAnnotations(map[string]string{
+					"tinyauth.apps.myapp.config.domain": "myapp.example.com",
+				})
+
+				svc.updateFromItem(&item)
+
+				var got *model.App
+				svc.getEntry(func(name string, app *model.App) bool {
+					if app.Config.Domain == "myapp.example.com" {
+						got = app
+						return true
+					}
+					return false
+				})
+				assert.Nil(t, got)
+			},
+		},
+		{
+			description: "UpdateFromItem fails when label parsing fails",
+			run: func(t *testing.T, svc *KubernetesService) {
+				item := unstructured.Unstructured{}
+				item.SetNamespace("default")
+				item.SetName("test-ingress")
+				item.SetAnnotations(map[string]string{
+					"tinyauth.apps.myapp.config.domain": "myapp.example.com",
+					"tinyauth.apps.myapp.users.break":   "i-dont-exist",
+				})
+				item.Object["spec"] = map[string]any{
+					"rules": []any{
+						map[string]any{
+							"host": "myapp.example.com",
+						},
+					},
+				}
+
+				svc.updateFromItem(&item)
+
+				var got *model.App
+				svc.getEntry(func(name string, app *model.App) bool {
+					if app.Config.Domain == "myapp.example.com" {
+						got = app
+						return true
+					}
+					return false
+				})
+
+				require.Nil(t, got)
 			},
 		},
 		{
